@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام التحليل البيومتري واستخبارات الصور الرقمية - OSINT Image Intelligence</title>
+  <style>
+    :root {
+      --bg: #070b13;
+      --card-bg: #0f172a;
+      --card-dark: #090e17;
+      --border: #1e293b;
+      --border-glow: #38bdf8;
+      --cyan: #38bdf8;
+      --emerald: #10b981;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      padding: 24px 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container { max-width: 1040px; width: 100%; }
+    header {
+      margin-bottom: 24px;
+      text-align: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      font-family: monospace;
+      letter-spacing: 0.5px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    h1 {
+      font-size: clamp(20px, 4vw, 28px);
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+    .subtitle { color: var(--text-muted); font-size: 14px; max-width: 720px; margin: 0 auto; }
+    
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    @media (min-width: 900px) {
+      .grid-layout { grid-template-columns: 5fr 7fr; }
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.4);
+      transition: all 0.2s;
+      position: relative;
+    }
+    .dropzone:hover {
+      border-color: var(--cyan);
+      background: rgba(56, 189, 248, 0.05);
+    }
+    .dropzone-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      background: #1e293b;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cyan);
+      font-size: 22px;
+    }
+    .form-group { margin-top: 14px; text-align: right; }
+    .form-label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .form-input {
+      width: 100%;
+      background: var(--card-dark);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .form-input:focus { border-color: var(--cyan); }
+
+    .btn-main {
+      width: 100%;
+      background: linear-gradient(90deg, #38bdf8, #10b981);
+      color: #04101e;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 16px;
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.25);
+      transition: all 0.2s;
+    }
+    .btn-main:hover { opacity: 0.95; transform: translateY(-1px); }
+    .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-sample {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--cyan);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    /* Viewport */
+    .viewport {
+      background: var(--card-dark);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      min-height: 290px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+    .target-img {
+      max-height: 270px;
+      max-width: 100%;
+      object-contain: contain;
+      border-radius: 8px;
+    }
+
+    /* Laser Line & Reticle */
+    .laser-line {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+      box-shadow: 0 0 15px #38bdf8, 0 0 30px #10b981;
+      animation: laserScan 1.6s ease-in-out infinite;
+      z-index: 10;
+    }
+    .reticle-box {
+      display: none;
+      position: absolute;
+      width: 160px;
+      height: 160px;
+      border: 2px solid rgba(56, 189, 248, 0.8);
+      border-radius: 8px;
+      z-index: 9;
+      animation: pulse 1.5s infinite;
+    }
+    .reticle-box::before {
+      content: '';
+      position: absolute;
+      top: -2px; left: -2px; width: 12px; height: 12px;
+      border-top: 3px solid #10b981; border-left: 3px solid #10b981;
+    }
+    .reticle-box::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; right: -2px; width: 12px; height: 12px;
+      border-bottom: 3px solid #10b981; border-right: 3px solid #10b981;
+    }
+
+    @keyframes laserScan {
+      0% { top: 2%; opacity: 0.8; }
+      50% { top: 96%; opacity: 1; }
+      100% { top: 2%; opacity: 0.8; }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.03); opacity: 1; }
+    }
+
+    /* Terminal logs */
+    .terminal-box {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #94a3b8;
+      height: 90px;
+      overflow-y: auto;
+      text-align: left;
+      direction: ltr;
+    }
+    .log-entry { margin-bottom: 4px; }
+    .log-ok { color: var(--emerald); font-weight: bold; }
+    .log-cyan { color: var(--cyan); }
+
+    /* Progress bar */
+    .progress-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: #020617;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 8px 0;
+      border: 1px solid var(--border);
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38bdf8, #10b981);
+      transition: width 0.1s linear;
+    }
+
+    /* Results */
+    .results-section {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 24px;
+    }
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin: 18px 0;
+    }
+    .res-card {
+      background: var(--card-dark);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .res-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .res-row { font-size: 12px; margin-bottom: 8px; font-family: monospace; }
+    .res-label { color: var(--text-muted); display: block; font-size: 11px; font-family: sans-serif; }
+    .match-link {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+
+    .btn-download {
+      background: #10b981;
+      color: #04101e;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    footer { margin-top: 28px; text-align: center; font-size: 12px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">● DIGITAL FORENSICS & OSINT IMAGE RECONNAISSANCE</div>
+      <h1>نظام التحليل البيومتري واستخبارات الصور الرقمية</h1>
+      <p class="subtitle">نموذج تفاعلي متقدم يحاكي استخراج بيانات الـ EXIF، وتوليد شبكة النقاط الوجهية، ومطابقة التوقيع البيومتري عبر المصادر المفتوحة.</p>
+    </header>
+
+    <div class="grid-layout">
+      <!-- Input Controls -->
+      <div class="panel">
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+          <input type="file" id="file-input" style="display: none;" accept="image/*" onchange="handleFile(this.files[0])">
+          <div class="dropzone-icon">📷</div>
+          <strong style="color: #f8fafc; font-size: 13px; display: block;">انقر أو اسحب صورة الهدف هنا</strong>
+          <span style="color: #94a3b8; font-size: 11px;">يدعم صيغ JPG، PNG، WebP، وبطاقات الهوية</span>
+          <div id="file-name" style="margin-top: 8px; color: #38bdf8; font-family: monospace; font-size: 11px;"></div>
+        </div>
+
+        <button class="btn-sample" onclick="loadSample()">⚡ تحميل صورة هدف افتراضية للعرض</button>
+
+        <div class="form-group">
+          <label class="form-label">الاسم المستعار أو كود المشتبه به (اختياري):</label>
+          <input type="text" id="target-alias" class="form-input" placeholder="مثال: Target #449">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">النطاق الزمني لأرشفة المصادر المفتوحة:</label>
+          <input type="text" id="target-time" class="form-input" value="2020 - 2026">
+        </div>
+
+        <button class="btn-main" id="btn-scan" onclick="startScan()">بدء التحليل الجنائي والمسح الرقمي (Start Forensic Scan)</button>
+      </div>
+
+      <!-- Viewport & Live Scan Overlay -->
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
+          <span style="font-size: 11px; font-family: monospace; color: #38bdf8;">● TARGET RECONNAISSANCE VIEWPORT</span>
+          <span id="scan-stage-badge" style="font-size: 10px; font-family: monospace; background: #020617; padding: 2px 8px; border-radius: 4px; border: 1px solid #1e293b; color: #94a3b8;">READY</span>
+        </div>
+
+        <div class="viewport" id="viewport">
+          <img id="target-preview" class="target-img" style="display: none;" src="" alt="Target">
+          <div class="laser-line" id="laser-line"></div>
+          <div class="reticle-box" id="reticle-box"></div>
+          <div id="empty-state" style="color: #64748b; font-size: 12px; text-align: center;">
+            لم يتم تحميل صورة هدف بعد.<br>
+            <span style="color: #38bdf8; cursor: pointer; text-decoration: underline;" onclick="loadSample()">اضغط لتحميل نموذج تجريبي</span>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: monospace; margin-top: 4px;">
+          <span id="scan-status-text" style="color: #cbd5e1;">بانتظار بدء الفحص...</span>
+          <span id="scan-pct" style="color: #38bdf8; font-weight: bold;">0%</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+
+        <div class="terminal-box" id="terminal-box">
+          <div class="log-entry">[SYSTEM] OSINT Forensic Engine initialized. Awaiting user input.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="results-section" id="results-sec">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2 style="font-size: 17px; color: #10b981; font-weight: 800;">🎯 ملف نتائج التحقيق الجنائي والمطابقة</h2>
+          <span style="font-size: 12px; color: #94a3b8;">تم التعرف على الهوية البيومترية بنسبة ثقة عالية (Confidence Score: 94.6%)</span>
+        </div>
+        <button class="btn-download" onclick="downloadReport()">تنزيل التقرير الجنائي (.txt)</button>
+      </div>
+
+      <div class="results-grid">
+        <!-- 1. EXIF Metadata -->
+        <div class="res-card">
+          <div class="res-title">📷 البيانات الوصفية (EXIF Metadata)</div>
+          <div class="res-row"><span class="res-label">طراز الكاميرا:</span>Sony Alpha 7R IV (ILCE-7RM4)</div>
+          <div class="res-row"><span class="res-label">العدسة والفتحة:</span>FE 85mm F1.4 GM (1/500s · ISO 100)</div>
+          <div class="res-row"><span class="res-label">تاريخ وساعة الالتقاط:</span>2024-03-14 16:42:08</div>
+          <div class="res-row"><span class="res-label">إحداثيات الـ GPS المضمنة:</span><span style="color: #10b981; font-weight: bold;">33°19'44.2"N 44°22'18.8"E (بغداد)</span></div>
+          <div class="res-row"><span class="res-label">سلامة الصورة:</span>Original Camera RAW Export (Clean)</div>
+        </div>
+
+        <!-- 2. Biometric Vector -->
+        <div class="res-card">
+          <div class="res-title" style="color: #10b981;">🧬 التحليل البيومتري للملامح</div>
+          <div class="res-row"><span class="res-label">نسبة التطابق الإجمالية:</span><span style="color: #10b981; font-size: 16px; font-weight: 900;">94.6% (تطابق عالي)</span></div>
+          <div class="res-row"><span class="res-label">المسافة بين العينين (IPD):</span>64.2 mm (طبيعي قياسي)</div>
+          <div class="res-row"><span class="res-label">العمر التقديري المكتشف:</span>26 - 31 سنة (Male)</div>
+          <div class="res-row"><span class="res-label">المتجه البيومتري الفريد:</span><span style="color: #38bdf8;">VEC-9A4F-88BC-E217</span></div>
+          <div class="res-row"><span class="res-label">زاوية الرأس:</span>Yaw: +1.1° / Pitch: -2.4° (مواجهة)</div>
+        </div>
+
+        <!-- 3. OSINT Sources -->
+        <div class="res-card">
+          <div class="res-title" style="color: #38bdf8;">🌐 المصادر المفتوحة المكتشفة (OSINT)</div>
+          <div class="match-link">
+            <strong style="color: #e2e8f0; display: block;">LinkedIn Public Profile (96.2%)</strong>
+            <span style="color: #94a3b8; font-family: monospace;">linkedin.com/in/target-archive-77</span>
+          </div>
+          <div class="match-link">
+            <strong style="color: #e2e8f0; display: block;">GitHub Public Avatar (93.8%)</strong>
+            <span style="color: #94a3b8; font-family: monospace;">github.com/avatars/u-901844</span>
+          </div>
+          <div class="match-link">
+            <strong style="color: #e2e8f0; display: block;">Tech Summit Directory (91.5%)</strong>
+            <span style="color: #94a3b8; font-family: monospace;">speakers.tech-summit.org/2024</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      نموذج محاكاة تعليمي وتوعوي لأمن المعلومات - OSINT Image Forensic Presentation Mockup
+    </footer>
+  </div>
+
+  <script>
+    var currentImgData = null;
+    var currentImgName = '';
+    var sampleSVG = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect width="400" height="400" fill="%230f172a"/><circle cx="200" cy="160" r="75" fill="%23cbd5e1"/><path d="M120 340 C120 250, 280 250, 280 340 Z" fill="%23334155"/><circle cx="175" cy="150" r="8" fill="%230f172a"/><circle cx="225" cy="150" r="8" fill="%230f172a"/><path d="M185 185 Q200 195 215 185" stroke="%23475569" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="200" cy="165" r="4" fill="%23475569"/><text x="200" y="380" font-family="monospace" font-size="12" fill="%2338bdf8" text-anchor="middle">TARGET #OSINT-4491</text></svg>';
+
+    function logMsg(msg, cls) {
+      var box = document.getElementById('terminal-box');
+      var div = document.createElement('div');
+      div.className = 'log-entry ' + (cls || '');
+      div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      currentImgName = file.name;
+      document.getElementById('file-name').textContent = 'الملف: ' + file.name;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        currentImgData = e.target.result;
+        displayImage(currentImgData);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadSample() {
+      currentImgData = sampleSVG;
+      currentImgName = 'Target_Sample_094.png';
+      document.getElementById('file-name').textContent = 'الملف: Target_Sample_094.png';
+      document.getElementById('target-alias').value = 'المشتبه به - م. س (افتراضي)';
+      displayImage(sampleSVG);
+      logMsg('Loaded default sample target image.', 'log-cyan');
+    }
+
+    function displayImage(src) {
+      document.getElementById('empty-state').style.display = 'none';
+      var preview = document.getElementById('target-preview');
+      preview.src = src;
+      preview.style.display = 'block';
+      document.getElementById('results-sec').style.display = 'none';
+      document.getElementById('progress-bar').style.width = '0%';
+      document.getElementById('scan-pct').textContent = '0%';
+    }
+
+    function startScan() {
+      if (!currentImgData) {
+        loadSample();
+      }
+
+      var btn = document.getElementById('btn-scan');
+      btn.disabled = true;
+      btn.textContent = 'جارٍ المسح والتحليل الجنائي...';
+
+      document.getElementById('laser-line').style.display = 'block';
+      document.getElementById('reticle-box').style.display = 'block';
+      document.getElementById('results-sec').style.display = 'none';
+
+      var pctEl = document.getElementById('scan-pct');
+      var barEl = document.getElementById('progress-bar');
+      var statusEl = document.getElementById('scan-status-text');
+      var badgeEl = document.getElementById('scan-stage-badge');
+
+      logMsg('Starting multi-stage OSINT forensic scan pipeline...', 'log-cyan');
+
+      var pct = 0;
+      var interval = setInterval(function() {
+        pct += 2;
+        barEl.style.width = pct + '%';
+        pctEl.textContent = pct + '%';
+
+        if (pct === 20) {
+          statusEl.textContent = '1/4: استخراج البيانات الوصفية (EXIF Extraction)...';
+          badgeEl.textContent = 'EXIF PARSE';
+          logMsg('[EXIF] Metadata extracted: Sony ILCE-7RM4, 85mm f/1.4, GPS: 33.3289N 44.3719E.', 'log-ok');
+        } else if (pct === 50) {
+          statusEl.textContent = '2/4: تحليل البصمة البيومترية للملامح (Facial Vectorization)...';
+          badgeEl.textContent = 'VECTOR MESH';
+          logMsg('[BIOMETRICS] 68 Facial vectors mapped. Interpupillary distance: 64.2mm. Head pose aligned.', 'log-ok');
+        } else if (pct === 80) {
+          statusEl.textContent = '3/4: مطابقة البصمة عبر قواعد البيانات (OSINT Cross-Referencing)...';
+          badgeEl.textContent = 'OSINT MATCH';
+          logMsg('[OSINT] Querying 14.8M indexed public web nodes... 3 high-confidence links identified.', 'log-ok');
+        } else if (pct >= 100) {
+          clearInterval(interval);
+          document.getElementById('laser-line').style.display = 'none';
+          document.getElementById('reticle-box').style.display = 'none';
+          statusEl.textContent = 'اكتمل التحليل ومطابقة الهوية بنجاح!';
+          badgeEl.textContent = 'MATCH VERIFIED';
+          btn.disabled = false;
+          btn.textContent = 'بدء التحليل الجنائي والمسح الرقمي (Start Forensic Scan)';
+          logMsg('[REPORT] Intelligence dossier generated. Confidence score: 94.6%.', 'log-ok');
+          document.getElementById('results-sec').style.display = 'block';
+          document.getElementById('results-sec').scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 65);
+    }
+
+    function downloadReport() {
+      var alias = document.getElementById('target-alias').value || 'Anonymous Target';
+      var text = '=== تقرير استخبارات الصور الرقمية والتحليل البيومتري (FORENSIC OSINT DOSSIER) ===\n' +
+        'تاريخ الفحص: ' + new Date().toLocaleString() + '\n' +
+        'الاسم المستعار: ' + alias + '\n' +
+        'نسبة الثقة في التطابق: 94.6% (High Confidence)\n\n' +
+        '1. البيانات الوصفية (EXIF):\n' +
+        '• الكاميرا: Sony Alpha 7R IV (ILCE-7RM4)\n' +
+        '• العدسة: FE 85mm F1.4 GM\n' +
+        '• تاريخ الالتقاط: 2024-03-14 16:42:08\n' +
+        '• إحداثيات الـ GPS: 33°19\'44.2"N 44°22\'18.8"E\n\n' +
+        '2. التحليل البيومتري:\n' +
+        '• المسافة بين العينين: 64.2 mm\n' +
+        '• العمر المقدر: 26 - 31 سنة\n' +
+        '• المتجه الفريد: VEC-9A4F-88BC-E217\n\n' +
+        '3. مطابقات المصادر المفتوحة:\n' +
+        '• LinkedIn: linkedin.com/in/target-archive-77 (96.2%)\n' +
+        '• GitHub: github.com/avatars/u-901844 (93.8%)\n' +
+        '• Tech Summit: speakers.tech-summit.org/2024 (91.5%)\n\n' +
+        'تقرير محاكاة استخباراتي توعوي.';
+
+      var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'Forensic_OSINT_Dossier_' + Date.now() + '.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

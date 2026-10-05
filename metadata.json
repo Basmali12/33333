@@ -1,0 +1,6 @@
+{
+  "name": "Digital Fingerprint Demo - لوحة تشخيص البصمة الرقمية",
+  "description": "عرض توعوي وتعليمي لأمن المعلومات يوضح البيانات العامة وبصمة المتصفح التي يستطيع أي خادم ويب قراءتها تلقائياً بمجرد فتح الرابط.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

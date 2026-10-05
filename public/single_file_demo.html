@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة تشخيص البصمة الرقمية للهاتف والمتصفح - Digital Footprint Demo</title>
+  <style>
+    :root {
+      --bg: #070b13;
+      --card-bg: #0f172a;
+      --border: #1e293b;
+      --border-hover: #334155;
+      --primary: #10b981;
+      --cyan: #38bdf8;
+      --purple: #c084fc;
+      --amber: #f59e0b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --code-bg: #030712;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      padding: 24px 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container { max-width: 980px; width: 100%; }
+    header { margin-bottom: 24px; text-align: center; }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 6px;
+      font-family: monospace;
+      letter-spacing: 0.5px;
+    }
+    h1 {
+      font-size: clamp(20px, 4vw, 28px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: var(--border-hover); }
+    .card-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      direction: ltr;
+      text-align: right;
+      font-family: monospace;
+      word-break: break-word;
+    }
+    .card-value.highlight { color: var(--primary); }
+    .card-value.cyan { color: var(--cyan); }
+    .card-value.purple { color: var(--purple); font-size: 13px; }
+    .card-value.amber { color: var(--amber); }
+    .card-note { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+    .sandbox-sec {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .sandbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin: 14px 0;
+      font-size: 12px;
+    }
+    .leaked-box {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 14px;
+      border-radius: 8px;
+    }
+    .protected-box {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 14px;
+      border-radius: 8px;
+    }
+    .btn-test {
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn-test:hover { background: #0369a1; }
+    .raw-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .raw-title { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
+    .raw-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #94a3b8;
+      word-break: break-all;
+      direction: ltr;
+      text-align: left;
+    }
+    .banner {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .banner-title { font-weight: 700; color: var(--primary); font-size: 15px; margin-bottom: 6px; }
+    .banner-text { font-size: 14px; color: #e2e8f0; line-height: 1.7; }
+    footer { margin-top: 28px; text-align: center; font-size: 12px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">● LIVE CLIENT RECONNAISSANCE · SECURITY DEMO</div>
+      <h1>لوحة تشخيص البصمة الرقمية للهاتف والمتصفح</h1>
+      <p class="subtitle">فحص حقيقي يكشف ما يشاركه هاتفك تلقائياً (البطارية، الموديل، كرت الشاشة، المظهر)، وما يمنعه جدار الحماية (الصور، GPS).</p>
+    </header>
+
+    <div class="grid">
+      <!-- 1. اسم وموديل الهاتف -->
+      <div class="card">
+        <div class="card-title">📱 طراز وموديل الهاتف / الجهاز</div>
+        <div class="card-value cyan" id="p-model">جارٍ كشف الموديل...</div>
+        <div class="card-note" id="p-os">نظام التشغيل: -</div>
+      </div>
+
+      <!-- 2. شحن البطارية -->
+      <div class="card">
+        <div class="card-title">🔋 نسبة وحالة شحن البطارية (Battery API)</div>
+        <div class="card-value highlight" id="p-batt">جارٍ قراءة البطارية...</div>
+        <div class="card-note" id="p-batt-note">-</div>
+      </div>
+
+      <!-- 3. كرت الشاشة GPU -->
+      <div class="card">
+        <div class="card-title">🎮 معالج الرسوميات (GPU WebGL)</div>
+        <div class="card-value purple" id="p-gpu">جارٍ كشف GPU...</div>
+        <div class="card-note" id="p-gpu-vendor">-</div>
+      </div>
+
+      <!-- 4. مظهر النظام وأسلوب الإدخال -->
+      <div class="card">
+        <div class="card-title">🌓 مظهر النظام وأسلوب الإدخال</div>
+        <div class="card-value amber" id="p-theme">-</div>
+        <div class="card-note" id="p-input">-</div>
+      </div>
+
+      <!-- 5. بصمة الشبكة والاتصال (Network Footprint) -->
+      <div class="card">
+        <div class="card-title">🌐 بصمة الشبكة والاتصال (Network Footprint)</div>
+        <div class="card-value cyan" id="p-ip">جاري التحميل...</div>
+        <div class="card-note" id="p-isp">مزود الخدمة: جاري الفحص...</div>
+        <div class="card-note" id="p-loc" style="color: #cbd5e1; font-weight: 500; margin-top: 3px;">الموقع: جاري التحديد...</div>
+      </div>
+
+      <!-- 6. شبكة الاتصال والسرعة -->
+      <div class="card">
+        <div class="card-title">📶 نوع وسرعة شبكة الاتصال</div>
+        <div class="card-value cyan" id="p-net">-</div>
+        <div class="card-note">تُستخرج عبر واجهة Network Information API</div>
+      </div>
+
+      <!-- 6. المتصفح -->
+      <div class="card">
+        <div class="card-title">🌐 اسم المتصفح وإصداره</div>
+        <div class="card-value highlight" id="p-browser">-</div>
+        <div class="card-note" id="p-engine">المحرك: -</div>
+      </div>
+
+      <!-- 7. الشاشة -->
+      <div class="card">
+        <div class="card-title">🖥️ أبعاد ودقة الشاشة (Display)</div>
+        <div class="card-value" id="p-screen">-</div>
+        <div class="card-note" id="p-screen-note">-</div>
+      </div>
+
+      <!-- 8. المعالجة والذاكرة -->
+      <div class="card">
+        <div class="card-title">⚡ المعالجة والذاكرة (Hardware)</div>
+        <div class="card-value amber" id="p-hw">-</div>
+        <div class="card-note" id="p-hw-note">-</div>
+      </div>
+
+      <!-- 9. اللغة والتوقيت -->
+      <div class="card">
+        <div class="card-title">🌍 لغة النظام والمنطقة الزمنية</div>
+        <div class="card-value" id="p-tz">-</div>
+        <div class="card-note" id="p-time">-</div>
+      </div>
+    </div>
+
+    <!-- قسم المقارنة الأمنية التفاعلي -->
+    <div class="sandbox-sec">
+      <div style="font-weight: 700; color: #10b981; font-size: 15px;">🛡️ المفهوم الأمني: الفارق بين البيانات المكشوفة والبيانات المحمية (Sandbox)</div>
+      <div class="sandbox-grid">
+        <div class="leaked-box">
+          <strong style="color: #10b981;">⚠️ مكشوف تلقائياً (بدون إذن):</strong>
+          <ul style="margin-top: 6px; padding-right: 16px;">
+            <li>نسبة شحن البطارية وحالة التوصيل بالشاحن</li>
+            <li>اسم وموديل الهاتف الدقيق ونظام التشغيل</li>
+            <li>شريحة كرت الشاشة (GPU WebGL)</li>
+            <li>مظهر النظام (Dark/Light Mode) وأبعاد الشاشة</li>
+          </ul>
+        </div>
+        <div class="protected-box">
+          <strong style="color: #38bdf8;">🔒 محمي بجدار المتصفح (يتطلب إذن صريح):</strong>
+          <ul style="margin-top: 6px; padding-right: 16px;">
+            <li>صور الاستوديو والملفات (ممنوع تماماً)</li>
+            <li>جهات الاتصال والإيميل المسجل (معزولة)</li>
+            <li>إحداثيات الموقع الدقيق GPS (يتطلب موافقة)</li>
+            <li>الكاميرا والميكروفون (نافذة تصريح رسمية)</li>
+          </ul>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);">
+        <span style="font-size: 12px; color: #94a3b8;">شاهد تدخل نظام الهاتف لحمايتك عند طلب بيانات حساسة:</span>
+        <button class="btn-test" onclick="testGPS()">اختبار طلب إذن الموقع (GPS)</button>
+      </div>
+      <div id="gps-status" style="margin-top: 10px; font-size: 11px; font-family: monospace; color: #38bdf8;"></div>
+    </div>
+
+    <!-- نص User-Agent الكامل الفعلي -->
+    <div class="raw-card">
+      <div class="raw-title">🔍 نص معرّف المتصفح الكامل (User-Agent String):</div>
+      <div class="raw-box" id="p-ua"></div>
+    </div>
+
+    <!-- الرسالة التوعوية المطلوبة -->
+    <div class="banner">
+      <div class="banner-title">🛡️ رسالة توعوية أمنية (Security Note):</div>
+      <p class="banner-text">
+        <strong>هذه البيانات يرسلها المتصفح بشكل طبيعي لأي خادم ويب، وتُستخدم في التحليل الأمني وتحديد بيئة الهدف (Reconnaissance).</strong>
+      </p>
+    </div>
+
+    <footer>
+      بيانات حقيقية 100% مستخرجة مباشرة من جهازك الحالي بدون أي حفظ خارجي أو تعقب.
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      var ua = navigator.userAgent || '';
+      document.getElementById('p-ua').textContent = ua;
+
+      // 1. تحديد الهاتف والنظام
+      var model = 'حاسوب (Desktop/Laptop)', os = 'نظام قياسي';
+      if (/iPhone/i.test(ua)) {
+        var w = Math.min(window.screen.width, window.screen.height);
+        var h = Math.max(window.screen.width, window.screen.height);
+        if (w === 430 && h === 932) model = 'Apple iPhone 15 Pro Max / 14 Pro Max';
+        else if (w === 393 && h === 852) model = 'Apple iPhone 15 Pro / 15 / 14 Pro';
+        else if (w === 390 && h === 844) model = 'Apple iPhone 14 / 13 / 12';
+        else if (w === 414 && h === 896) model = 'Apple iPhone 11 / XR';
+        else model = 'Apple iPhone';
+        os = 'Apple iOS';
+      } else if (/Android/i.test(ua)) {
+        var sam = ua.match(/SM-([A-Z0-9]+)/i);
+        if (sam) model = 'Samsung Galaxy (' + sam[0].toUpperCase() + ')';
+        else if (/Pixel/i.test(ua)) model = 'Google Pixel';
+        else if (/Redmi/i.test(ua)) model = 'Xiaomi Redmi';
+        else model = 'هاتف ذكي Android';
+        os = 'Google Android';
+      } else if (/Windows/i.test(ua)) {
+        model = 'حاسوب شخصي (Windows PC)';
+        os = 'Windows';
+      } else if (/Mac/i.test(ua)) {
+        model = 'Apple Mac';
+        os = 'macOS';
+      }
+      document.getElementById('p-model').textContent = model;
+      document.getElementById('p-os').textContent = 'نظام التشغيل: ' + os;
+
+      // 2. كشف البطارية
+      if (navigator.getBattery) {
+        navigator.getBattery().then(function(b) {
+          function updateBatt() {
+            var pct = Math.round(b.level * 100);
+            var status = b.charging ? ('⚡ جاري الشحن (' + pct + '%)') : ('🔋 يعمل على البطارية (' + pct + '%)');
+            document.getElementById('p-batt').textContent = status;
+            document.getElementById('p-batt-note').textContent = 'مباشر من بطارية الهاتف عبر Battery Status API';
+          }
+          updateBatt();
+          b.addEventListener('chargingchange', updateBatt);
+          b.addEventListener('levelchange', updateBatt);
+        }).catch(function() {
+          document.getElementById('p-batt').textContent = 'محجوبة برمجياً';
+        });
+      } else {
+        document.getElementById('p-batt').textContent = /iPhone|iPad/i.test(ua) ? 'محجوبة في Safari (iOS Privacy)' : 'غير مدعومة في المتصفح';
+        document.getElementById('p-batt-note').textContent = 'حجبت Apple قراءة البطارية لمنع استغلالها في التعقب';
+      }
+
+      // 3. كشف GPU
+      try {
+        var canvas = document.createElement('canvas');
+        var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (gl) {
+          var debug = gl.getExtension('WEBGL_debug_renderer_info');
+          if (debug) {
+            document.getElementById('p-gpu').textContent = gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) || 'متاح';
+            document.getElementById('p-gpu-vendor').textContent = 'المصنع: ' + (gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) || 'GPU');
+          }
+        }
+      } catch(e) {}
+
+      // 4. مظهر النظام
+      var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.getElementById('p-theme').textContent = isDark ? 'الوضع الداكن (Dark Mode)' : 'الوضع الفاتح (Light Mode)';
+      var isCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      document.getElementById('p-input').textContent = isCoarse ? 'شاشة لمس إصبعية (Touchscreen)' : 'مؤشر فارة دقيق (Mouse)';
+
+      // 5. المتصفح
+      var browser = 'متصفح ويب', engine = 'Blink';
+      if (/Edg\/([0-9\.]+)/i.test(ua)) { browser = 'Microsoft Edge ' + RegExp.$1; engine = 'Blink'; }
+      else if (/Chrome\/([0-9\.]+)/i.test(ua)) { browser = 'Google Chrome ' + RegExp.$1; engine = 'Blink'; }
+      else if (/Firefox\/([0-9\.]+)/i.test(ua)) { browser = 'Mozilla Firefox ' + RegExp.$1; engine = 'Gecko'; }
+      else if (/Version\/([0-9\.]+) Safari/i.test(ua)) { browser = 'Apple Safari ' + RegExp.$1; engine = 'WebKit'; }
+      document.getElementById('p-browser').textContent = browser;
+      document.getElementById('p-engine').textContent = 'المحرك: ' + engine;
+
+      // 6. الشاشة
+      document.getElementById('p-screen').textContent = window.screen.width + ' × ' + window.screen.height + ' px';
+      document.getElementById('p-screen-note').textContent = 'كثافة البكسل: ' + (window.devicePixelRatio || 1) + 'x';
+
+      // 7. الشبكة
+      var conn = navigator.connection;
+      if (conn) {
+        document.getElementById('p-net').textContent = (conn.effectiveType ? conn.effectiveType.toUpperCase() : 'Wi-Fi / Cellular') + (conn.downlink ? ' ~' + conn.downlink + ' Mbps' : '');
+      } else {
+        document.getElementById('p-net').textContent = 'اتصال إنترنت نشط';
+      }
+
+      // 8. العتاد
+      var cores = navigator.hardwareConcurrency ? (navigator.hardwareConcurrency + ' أنوية معالجة') : 'غير معلن';
+      var mem = navigator.deviceMemory ? (navigator.deviceMemory + ' GB RAM') : 'محجوبة';
+      document.getElementById('p-hw').textContent = cores;
+      document.getElementById('p-hw-note').textContent = 'الذاكرة: ' + mem + ' · اللمس: ' + (navigator.maxTouchPoints || 0) + ' نقاط';
+
+      // 9. اللغة والتوقيت
+      var tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'غير محدد';
+      document.getElementById('p-tz').textContent = (navigator.language || 'ar') + ' · ' + tz;
+      document.getElementById('p-time').textContent = 'الوقت المحلي: ' + new Date().toLocaleTimeString();
+    })();
+
+    // GPS test
+    function testGPS() {
+      var st = document.getElementById('gps-status');
+      if (!navigator.geolocation) {
+        st.textContent = 'واجهة الموقع غير مدعومة في هذا المتصفح.';
+        return;
+      }
+      st.textContent = 'جارٍ إظهار نافذة المتصفح الرسمية لطلب إذنك...';
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          st.textContent = '✅ وافقت على الإذن: تم جلب الإحداثيات بنجاح (' + pos.coords.latitude.toFixed(3) + ', ' + pos.coords.longitude.toFixed(3) + '). لاحظ أن المتصفح لم يشاركها إلا بعد موافقتك الصريحة!';
+        },
+        function(err) {
+          st.textContent = '🛡️ تم رفض الإذن: منع جدار حماية المتصفح أخذ موقعك، بعكس مواصفات الهاتف التي كُشفت تلقائياً!';
+        }
+      );
+    }
+
+    // جلب بصمة الشبكة والـ IP العام ومزود الخدمة والمدينة
+    async function loadNetworkFootprint() {
+      var ipEl = document.getElementById('p-ip');
+      var ispEl = document.getElementById('p-isp');
+      var locEl = document.getElementById('p-loc');
+
+      // 1. المحاولة الأساسية عبر ipapi.co
+      try {
+        var res = await fetch('https://ipapi.co/json/');
+        if (res.ok) {
+          var d = await res.json();
+          if (d && d.ip) {
+            if (ipEl) ipEl.textContent = d.ip;
+            if (ispEl) ispEl.textContent = 'مزود الخدمة: ' + (d.org || d.asn || 'شركة اتصالات محلية');
+            if (locEl) locEl.textContent = 'الموقع: ' + [d.city, d.country_name].filter(Boolean).join('، ');
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 2. المحاولة البديلة الأولى عبر ipwho.is
+      try {
+        var res2 = await fetch('https://ipwho.is/');
+        if (res2.ok) {
+          var d2 = await res2.json();
+          if (d2 && d2.ip) {
+            if (ipEl) ipEl.textContent = d2.ip;
+            if (ispEl) ispEl.textContent = 'مزود الخدمة: ' + ((d2.connection && d2.connection.isp) || 'شركة اتصالات');
+            if (locEl) locEl.textContent = 'الموقع: ' + [d2.city, d2.country].filter(Boolean).join('، ');
+            return;
+          }
+        }
+      } catch (e2) {}
+
+      // 3. المحاولة البديلة الثانية عبر api.ipify.org
+      try {
+        var res3 = await fetch('https://api.ipify.org?format=json');
+        if (res3.ok) {
+          var d3 = await res3.json();
+          if (d3 && d3.ip) {
+            if (ipEl) ipEl.textContent = d3.ip;
+            if (ispEl) ispEl.textContent = 'مزود الخدمة: مزود إنترنت محلي';
+            if (locEl) locEl.textContent = 'الموقع: موقع الشبكة التقديري';
+            return;
+          }
+        }
+      } catch (e3) {}
+
+      if (ipEl) ipEl.textContent = 'تعذر الجلب (مانع إعلانات)';
+      if (ispEl) ispEl.textContent = 'مزود الخدمة: غير متاح';
+      if (locEl) locEl.textContent = 'الموقع: غير متاح';
+    }
+    loadNetworkFootprint();
+  </script>
+</body>
+</html>
